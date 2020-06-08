@@ -2,6 +2,8 @@ import twitter
 import json
 import csv
 import time
+import pandas as pd
+import pre_processor as pp
 
 
 def twitter_connection():
@@ -18,9 +20,9 @@ def twitter_connection():
 
 def build_test_set(twitter_api, search_keyword):
     try:
-        test_tweets = twitter_api.GetSearch(search_keyword, count=10)
+        test_tweets = twitter_api.GetSearch(search_keyword, count=150)
         print(len(test_tweets), "tweets have been fetched from twitter to build the testing set")
-        return [{"tweet": status.text, "label": None} for status in test_tweets]
+        return [{"text": status.text, "label": None} for status in test_tweets]
     except Exception as e:
         print("Oops something went wrong. Try again later", e)
 
@@ -28,11 +30,7 @@ def build_test_set(twitter_api, search_keyword):
 def fetch_tweets_by_id(tweets_ids):
     tweets_limit = 180
     fetching_window = 15*60
-
     train_tweets = []
-    tweets_ids = tweets_ids[1350:1400]
-
-    tweets_recovered = 0
 
     for tweet in tweets_ids:
         try:
@@ -40,14 +38,12 @@ def fetch_tweets_by_id(tweets_ids):
             tweet['text'] = status.text
             train_tweets.append(tweet)
             print("tweet fetched", tweet['tweetId'])
-            tweets_recovered += 1
-            #time.sleep(fetching_window/tweets_limit)
+            time.sleep(fetching_window/tweets_limit)
         except Exception as e:
             print(tweet['tweetId'], e)
             continue
 
-    print("We have fetched", tweets_recovered, "tweets for the trainning set")
-
+    print("We have fetched", len(train_tweets), "tweets for the trainning set")
     return train_tweets
 
 
@@ -74,13 +70,26 @@ def build_training_set():
 
     return train_tweets
 
-#main
 
+def get_training_set():
+    tweets_list = []
+    with open('training_set.csv') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',', quotechar="\"")
+        for row in csv_reader:
+            tweets_list.append({'tweetId': row[0], 'label': row[3], 'topic': row[2], 'text': row[1]})
+    if len(tweets_list) == 0:
+        return build_training_set()
+    return tweets_list
+
+
+#main
+pre_process = pp.PreProcessTweets
 
 twitter_api = twitter_connection()
 test_set = build_test_set(twitter_api, "racism")
-train_set = build_training_set()
+train_set = get_training_set()
 
-
+pre_processed_test_set = pre_process.process_tweets(test_set)
+pre_processed_train_set = pre_process.process_tweets(train_set)
 
 
