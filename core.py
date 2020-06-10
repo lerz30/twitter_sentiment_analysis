@@ -2,7 +2,6 @@ import twitter
 import json
 import csv
 import time
-import pandas as pd
 import pre_processor as pp
 
 
@@ -20,7 +19,7 @@ def twitter_connection():
 
 def build_test_set(twitter_api, search_keyword):
     try:
-        test_tweets = twitter_api.GetSearch(search_keyword, count=150)
+        test_tweets = twitter_api.GetSearch(search_keyword, count=10)
         print(len(test_tweets), "tweets have been fetched from twitter to build the testing set")
         return [{"text": status.text, "label": None} for status in test_tweets]
     except Exception as e:
@@ -83,7 +82,7 @@ def get_training_set():
 
 
 #main
-pre_process = pp.PreProcessTweets
+pre_process = pp.PreProcessTweets()
 
 twitter_api = twitter_connection()
 test_set = build_test_set(twitter_api, "racism")
@@ -91,5 +90,6 @@ train_set = get_training_set()
 
 pre_processed_test_set = pre_process.process_tweets(test_set)
 pre_processed_train_set = pre_process.process_tweets(train_set)
+
 
 
