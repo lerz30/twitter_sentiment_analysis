@@ -3,6 +3,7 @@ import json
 import csv
 import time
 import pre_processor as pp
+import nltk
 
 
 def twitter_connection():
@@ -81,6 +82,26 @@ def get_training_set():
     return tweets_list
 
 
+def build_vocabulary(pre_processed_train_set):
+    all_words = []
+
+    for (words, sentiment) in pre_processed_train_set:
+        all_words.extend(words)
+
+    wordlist = nltk.FreqDist(all_words)
+    word_features = wordlist.keys()
+
+    return word_features
+
+
+def extract_features(tweet):
+    tweet_words = set(tweet)
+    features = {}
+    for word in word_features:
+        features['contains(%s)' % word] = (word in tweet_words)
+    return features
+
+
 #main
 pre_process = pp.PreProcessTweets()
 
@@ -90,6 +111,19 @@ train_set = get_training_set()
 
 pre_processed_test_set = pre_process.process_tweets(test_set)
 pre_processed_train_set = pre_process.process_tweets(train_set)
+word_features = build_vocabulary(pre_processed_train_set)
+training_features = nltk.classify.apply_features(extract_features, pre_processed_train_set)
+NBayesClassifier = nltk.NaiveBayesClassifier.train(training_features)
+NBResultLabels = [NBayesClassifier.classify(extract_features(tweet[0])) for tweet in pre_processed_test_set]
+
+if NBResultLabels.count('positive') > NBResultLabels.count('negative'):
+    print("Overall Positive Sentiment")
+    print("Positive Sentiment Percentage = " + str(100*NBResultLabels.count('positive')/len(NBResultLabels)) + "%")
+else:
+    print("Overall Negative Sentiment")
+    print("Negative Sentiment Percentage = " + str(100*NBResultLabels.count('negative')/len(NBResultLabels)) + "%")
+
+
 
 
 
